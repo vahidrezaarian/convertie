@@ -150,7 +150,18 @@ public static class Extensions
                     return bytes.GetStringByEncoding(encodingType);
                 }
             case ConvertingTypes.CBOR:
-                return CBORObject.DecodeFromBytes(input.ToByteArrayFromHexString()).ToString();
+                if (input.IsHexString())
+                {
+                    return CBORObject.DecodeFromBytes(input.ToByteArrayFromHexString()).ToString();
+                }
+                else if (input.IsBase64String())
+                {
+                    return CBORObject.DecodeFromBytes(input.ToByteArrayFromBase64String()).ToString();
+                }
+                else
+                {
+                    return CBORObject.DecodeFromBytes(input.ToByteArrayFromBase64UrlString()).ToString();
+                }
             default:
                 if (outputType == ConvertingTypes.Hex)
                 {
@@ -434,7 +445,10 @@ public static class Utils
             list.Add(ConvertingTypes.Base64URL);
         }
 
-        list.Add(ConvertingTypes.Text);
+        if (list.Count < 1)
+        {
+            list.Add(ConvertingTypes.Text);
+        }
 
         return list;
     }
