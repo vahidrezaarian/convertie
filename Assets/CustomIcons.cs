@@ -111,5 +111,23 @@ namespace Convertie.Assets
 
             return drawingImage;
         }
+
+        public static DrawingImage Close(Color color)
+        {
+            var drawingGroup = new DrawingGroup();
+
+            var geometry1 = Geometry.Parse("M14.83,14.83L9.17,9.17");
+            var drawing1 = new GeometryDrawing(new SolidColorBrush(color), null, geometry1);
+            drawingGroup.Children.Add(drawing1);
+
+            var geometry2 = Geometry.Parse("M9.17,14.83L14.83,9.17");
+            var drawing2 = new GeometryDrawing(new SolidColorBrush(color), null, geometry2);
+            drawingGroup.Children.Add(drawing2);
+
+            var drawingImage = new DrawingImage(drawingGroup);
+            drawingImage.Freeze();
+
+            return drawingImage;
+        }
     }
 }

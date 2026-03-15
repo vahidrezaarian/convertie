@@ -426,21 +426,47 @@ public static class Utils
     public static List<ConvertingTypes> GetInputConvertingTypes(string input)
     {
         var list = new List<ConvertingTypes>();
+        bool isCbor = false;
+        bool isHex = false;
+        bool isBase64 = false;
+        bool isBase64Url = false;
 
-        if (input.IsCborByteArray())
+        var task1 = Task.Run(() =>
+        {
+            isCbor = input.IsCborByteArray();
+        });
+        var task2 = Task.Run(() =>
+        {
+            isHex = input.IsHexString();
+        });
+        var task3 = Task.Run(() =>
+        {
+            isBase64 = input.IsBase64String();
+        });
+        var task4 = Task.Run(() =>
+        {
+            isBase64Url = input.IsBase64UrlString();
+        });
+
+        task1.Wait();
+        task2.Wait();
+        task3.Wait();
+        task4.Wait();
+
+        if (isCbor)
         {
             list.Add(ConvertingTypes.CBOR);
         }
 
-        if (input.IsHexString())
+        if (isHex)
         {
             list.Add(ConvertingTypes.Hex);
         }
-        else if (input.IsBase64String())
+        else if (isBase64)
         {
             list.Add(ConvertingTypes.Base64);
         }
-        else if (input.IsBase64UrlString())
+        else if (isBase64Url)
         {
             list.Add(ConvertingTypes.Base64URL);
         }
