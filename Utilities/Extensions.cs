@@ -515,7 +515,7 @@ public static class Utils
             list.Add(ConvertingTypes.Base64URL);
         }
 
-        if (list.Count < 1)
+        if (list.Count == 0)
         {
             list.Add(ConvertingTypes.Text);
         }
@@ -523,13 +523,13 @@ public static class Utils
         return list;
     }
 
-    public static List<ConvertingTypes> GetOutputConvertingTypes(string input, ConvertingTypes inputType)
+    public static List<ConvertingTypes> GetOutputConvertingTypes(string? input, ConvertingTypes inputType)
     {
         var list = new List<ConvertingTypes>();
 
         if (inputType == ConvertingTypes.Text)
         {
-            if (input.CanBeCborObject())
+            if (input != null && input.CanBeCborObject())
             {
                 list.Add(ConvertingTypes.CBOR);
             }

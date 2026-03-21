@@ -32,9 +32,12 @@ public partial class MainWindow : Window
     private bool _isHorizontal = true;
     private bool _convertOnTypeChange = false;
     private bool _convertImmediately = false;
-    private bool _clipboardSuggestionCancelled = false;
+    private bool _convertingAutomatically = false;
+    private bool _autoConversionAllowed = true;
     private string _cancelledClipboardSuggestionContent = string.Empty;
+    private string _lastCachedClipboardContent = string.Empty;
     private string _detectedCborInClipboard = string.Empty;
+    private string _cancelledDetectedCborInClipboard = string.Empty;
     private readonly DispatcherTimer _typingTimer;
     private readonly DispatcherTimer _convertingTimer;
     private readonly Lock _conversionTaskLock = new();
@@ -42,14 +45,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        PanelChangeIcon.Source = CustomIcons.ScreenVertical(SystemColors.AccentColor);
-        CopyButtonIcon.Source = CustomIcons.Copy(SystemColors.AccentColor);
-        ReverseButtonIcon.Source = CustomIcons.ArrowUp(SystemColors.AccentColor);
-        ClipboardSuggestionCancelButtonIcon.Source = CustomIcons.Close(Colors.White);
-        DetectedCborDecodeSuggestionCancelButtonIcon.Source = CustomIcons.Close(Colors.White);
-        DetectedCborDecodeSuggestionButton.Background = SystemColors.AccentColorBrush;
-        TextEncodingDecodingCombobox.ItemsSource = Utils.GetEncodingDecodingTypes();
-        TextEncodingDecodingCombobox.SelectedIndex = 0;
+        InitializeGuiElements();
 
         _typingTimer = new();
         _typingTimer.Tick += ConvertionTimerTimeout;
@@ -66,6 +62,45 @@ public partial class MainWindow : Window
         Dispatcher.Invoke(() =>
         {
             StartTheConversionTask(InputTextBox.Text);
+            _autoConversionAllowed = true;
+        });
+    }
+
+    private void InitialzeAutoConvertInputTypeComboBox()
+    {
+        AutoConvertInputTypeComboBox.ItemsSource = new List<string>()
+        {
+            "None",
+            ConvertingTypes.Text.ToString(),
+            ConvertingTypes.Hex.ToString(),
+            ConvertingTypes.Base64.ToString(),
+            ConvertingTypes.Base64URL.ToString(),
+            "CBOR (Exact)",
+            "CBOR (In content)",
+        };
+        AutoConvertInputTypeComboBox.SelectedIndex = 0;
+    }
+
+    private void InitializeGuiElements()
+    {
+        InitialzeAutoConvertInputTypeComboBox();
+        PanelChangeIcon.Source = CustomIcons.ScreenVertical(SystemColors.AccentColor);
+        CopyButtonIcon.Source = CustomIcons.Copy(SystemColors.AccentColor);
+        ReverseButtonIcon.Source = CustomIcons.ArrowUp(SystemColors.AccentColor);
+        ClipboardSuggestionCancelButtonIcon.Source = CustomIcons.Close(Colors.White);
+        DetectedCborDecodeSuggestionCancelButtonIcon.Source = CustomIcons.Close(Colors.White);
+        DetectedCborDecodeSuggestionButton.Background = SystemColors.AccentColorBrush;
+        TextEncodingDecodingCombobox.ItemsSource = Utils.GetEncodingDecodingTypes();
+        AutoConvertTextEncodingDecodingCombobox.ItemsSource = Utils.GetEncodingDecodingTypes();
+        TextEncodingDecodingCombobox.SelectedIndex = 0;
+        AutoConvertTextEncodingDecodingCombobox.SelectedIndex = 0;
+    }
+
+    private void ShowDefaultMessage()
+    {
+        Dispatcher.Invoke(() =>
+        {
+            ShowMessage("Convert as you wish ;)");
         });
     }
 
@@ -77,33 +112,23 @@ public partial class MainWindow : Window
         Task.Run(() =>
         {
             Task.Delay(duration).Wait();
-            Dispatcher.Invoke(() =>
-            {
-                ShowMessage("Convert as you wish ;)");
-            });
+            ShowDefaultMessage();
         });
     }
 
-    private void ShowMessage(string content)
+    private void ShowMessage(string content, int duration = -1)
     {
         ErrorTextBox.Text = null;
         MessageTextBox.Text = content;
         ErrorTextBox.Visibility = Visibility.Collapsed;
         MessageTextBox.Visibility = Visibility.Visible;
-    }
-
-    private void Convert()
-    {
-        try
+        if (duration > 0)
         {
-            OutputTextBox.Text = InputTextBox.Text.Convert((ConvertingTypes)InputComboBox.SelectedItem,
-                (ConvertingTypes)OutputComboBox.SelectedItem,
-                (EncodingTypes)TextEncodingDecodingCombobox.SelectedItem);
-            SetupContentGrid();
-        }
-        catch (Exception ex)
-        {
-            ShowError($"Failed to convert. Error: {ex.Message}", 5000);
+            Task.Run(() =>
+            {
+                Task.Delay(duration).Wait();
+                ShowDefaultMessage();
+            });
         }
     }
 
@@ -181,6 +206,21 @@ public partial class MainWindow : Window
         }
     }
 
+    private void Convert()
+    {
+        try
+        {
+            OutputTextBox.Text = InputTextBox.Text.Convert((ConvertingTypes)InputComboBox.SelectedItem,
+                (ConvertingTypes)OutputComboBox.SelectedItem,
+                (EncodingTypes)TextEncodingDecodingCombobox.SelectedItem);
+            SetupContentGrid();
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Failed to convert. Error: {ex.Message}", 5000);
+        }
+    }
+
     private void SetEncodingDecodingComboBox()
     {
         TextEncodingDecodingCombobox.Visibility = Visibility.Collapsed;
@@ -213,11 +253,18 @@ public partial class MainWindow : Window
 
                     _convertOnTypeChange = false;
 
-                    InputComboBox.ItemsSource = Utils.GetInputConvertingTypes(input);
-                    InputComboBox.SelectedIndex = 0;
+                    if (!_convertingAutomatically)
+                    {
+                        InputComboBox.ItemsSource = Utils.GetInputConvertingTypes(input);
+                        InputComboBox.SelectedIndex = 0;
 
-                    OutputComboBox.ItemsSource = Utils.GetOutputConvertingTypes(input, (ConvertingTypes)InputComboBox.SelectedItem);
-                    OutputComboBox.SelectedIndex = 0;
+                        OutputComboBox.ItemsSource = Utils.GetOutputConvertingTypes(input, (ConvertingTypes)InputComboBox.SelectedItem);
+                        OutputComboBox.SelectedIndex = 0;
+                    }
+                    else
+                    {
+                        _convertingAutomatically = false;
+                    }
 
                     SetEncodingDecodingComboBox();
 
@@ -232,6 +279,111 @@ public partial class MainWindow : Window
         });
     }
 
+    private bool TryAutoConversion(string input)
+    {
+        try
+        {
+            if (!_autoConversionAllowed)
+            {
+                return false;
+            }
+
+            if (AutoConvertInputTypeComboBox.SelectedItem.ToString() == "None")
+            {
+                return false;
+            }
+
+            ConvertingTypes autoConvertInputType;
+            bool cborInContent = false;
+            if (AutoConvertInputTypeComboBox.SelectedItem.ToString()?.Contains("CBOR") == true)
+            {
+                autoConvertInputType = ConvertingTypes.CBOR;
+                cborInContent = AutoConvertInputTypeComboBox.SelectedItem?.ToString()?.Contains("content") == true;
+            }
+            else if (Enum.TryParse(typeof(ConvertingTypes), AutoConvertInputTypeComboBox.SelectedItem.ToString(), out object? selectedAutoConvertTypeObject))
+            {
+                autoConvertInputType = (ConvertingTypes)selectedAutoConvertTypeObject;
+            }
+            else
+            {
+                return false;
+            }
+
+            if (cborInContent)
+            {
+                if (string.IsNullOrEmpty(_detectedCborInClipboard))
+                {
+                    return false;
+                }
+                input = _detectedCborInClipboard;
+            }
+
+            var inputTypes = Utils.GetInputConvertingTypes(input);
+
+            if (!inputTypes.Contains(autoConvertInputType))
+            {
+                return false;
+            }
+
+            _convertOnTypeChange = false;
+            InputComboBox.ItemsSource = inputTypes;
+            InputComboBox.SelectedItem = autoConvertInputType;
+
+            var outputTypes = Utils.GetOutputConvertingTypes(input, autoConvertInputType);
+
+            if (!outputTypes.Contains((ConvertingTypes)AutoConvertOutputTypeComboBox.SelectedItem))
+            {
+                return false;
+            }
+
+            OutputComboBox.ItemsSource = outputTypes;
+            OutputComboBox.SelectedItem = (ConvertingTypes)AutoConvertOutputTypeComboBox.SelectedItem;
+            _convertOnTypeChange = true;
+
+            _convertingAutomatically = true;
+            InputTextBox.Text = input;
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private ConvertingTypes? GetAutoConvertingInputType()
+    {
+        if (AutoConvertInputTypeComboBox.SelectedItem.ToString()?.Contains("CBOR") == true)
+        {
+            return ConvertingTypes.CBOR;
+        }
+        else if (Enum.TryParse(typeof(ConvertingTypes), AutoConvertInputTypeComboBox.SelectedItem.ToString(), out object? selectedAutoConvertTypeObject))
+        {
+            return (ConvertingTypes)selectedAutoConvertTypeObject;
+        }
+
+        return null;
+    }
+
+    private void SetupAutoConvertEncodingDecodingComboBoxVisibility(ConvertingTypes inputType)
+    {
+        Task.Run(() =>
+        {
+            Task.Delay(10).Wait();
+            Dispatcher.Invoke(() =>
+            {
+                if ((inputType == ConvertingTypes.Text && (ConvertingTypes)AutoConvertOutputTypeComboBox.SelectedItem != ConvertingTypes.CBOR) ||
+                    ((ConvertingTypes)AutoConvertOutputTypeComboBox.SelectedItem == ConvertingTypes.Text && inputType != ConvertingTypes.CBOR))
+                {
+                    AutoConvertTextEncodingDecodingCombobox.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    AutoConvertTextEncodingDecodingCombobox.Visibility = Visibility.Collapsed;
+                }
+            });
+        });
+    }
+
     #region Overrides
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
@@ -242,17 +394,13 @@ public partial class MainWindow : Window
     #region Callbacks
     private void InputTextBoxTextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
     {
-        InputHint.Visibility = Visibility.Collapsed;
+        InputHint.Visibility = string.IsNullOrEmpty(InputTextBox.Text) ? Visibility.Visible : Visibility.Collapsed;
         DetectedCborDecodeSuggestionButtonsGrid.Visibility = Visibility.Collapsed;
         ClipboardSuggestionButtonsGrid.Visibility = Visibility.Collapsed;
+        _autoConversionAllowed = false;
 
         _typingTimer.Stop();
         _convertingTimer.Stop();
-
-        if (string.IsNullOrEmpty(InputTextBox.Text))
-        {
-            InputHint.Visibility = Visibility.Visible;
-        }
 
         if (_convertImmediately || string.IsNullOrEmpty(InputTextBox.Text))
         {
@@ -273,39 +421,45 @@ public partial class MainWindow : Window
             Task.Delay(20).Wait();
             Dispatcher.Invoke(() =>
             {
-                var clipboardText = Clipboard.GetText();
+                _lastCachedClipboardContent = Clipboard.GetText();
                 Task.Run(() =>
                 {
-                    var inputTypes = Utils.GetInputConvertingTypes(clipboardText);
+                    var inputTypes = Utils.GetInputConvertingTypes(_lastCachedClipboardContent);
 
                     _detectedCborInClipboard = string.Empty;
-                    if (!inputTypes.Contains(ConvertingTypes.CBOR) && clipboardText.ContainsCbor(out string detectedCborHex) &&
+                    if (!inputTypes.Contains(ConvertingTypes.CBOR) && _lastCachedClipboardContent.ContainsCbor(out string detectedCborHex) &&
                         detectedCborHex != _detectedCborInClipboard)
                     {
-                        Dispatcher.Invoke(() =>
-                        {
-                            _detectedCborInClipboard = detectedCborHex;
-                            if (InputTextBox.Text != _detectedCborInClipboard)
-                            {
-                                DetectedCborDecodeSuggestionButtonsGrid.Visibility = Visibility.Visible;
-                            }
-                        });
+                        _detectedCborInClipboard = detectedCborHex;
                     }
 
-                    if (!string.IsNullOrEmpty(clipboardText) && inputTypes.Count > 0)
+                    if (!string.IsNullOrEmpty(_lastCachedClipboardContent) && inputTypes.Count > 0)
                     {
                         Dispatcher.Invoke(() =>
                         {
-                            if (clipboardText != _cancelledClipboardSuggestionContent)
+                            if (!TryAutoConversion(_lastCachedClipboardContent))
                             {
-                                _clipboardSuggestionCancelled = false;
-                                _cancelledClipboardSuggestionContent = string.Empty;
-                            }
+                                if (_lastCachedClipboardContent != _cancelledClipboardSuggestionContent)
+                                {
+                                    _cancelledClipboardSuggestionContent = string.Empty;
+                                }
 
-                            if (!_clipboardSuggestionCancelled && InputTextBox.Text != clipboardText && 
-                                InputTextBox.Text != _detectedCborInClipboard)
-                            {
-                                ClipboardSuggestionButtonsGrid.Visibility = Visibility.Visible;
+                                if (_detectedCborInClipboard != _cancelledDetectedCborInClipboard)
+                                {
+                                    _cancelledDetectedCborInClipboard = string.Empty;
+                                }
+
+                                if (InputTextBox.Text != _lastCachedClipboardContent &&
+                                    _lastCachedClipboardContent != _cancelledClipboardSuggestionContent)
+                                {
+                                    ClipboardSuggestionButtonsGrid.Visibility = Visibility.Visible;
+                                }
+
+                                if (InputTextBox.Text != _detectedCborInClipboard && 
+                                    _detectedCborInClipboard != _cancelledDetectedCborInClipboard)
+                                {
+                                    DetectedCborDecodeSuggestionButtonsGrid.Visibility = Visibility.Visible;
+                                }
                             }
                         });
                     }
@@ -357,30 +511,59 @@ public partial class MainWindow : Window
 
     private void ClipboardSuggestionButtonClick(object sender, RoutedEventArgs e)
     {
-        var clipboardText = Clipboard.GetText();
-        if (!string.IsNullOrEmpty(clipboardText))
+        if (!string.IsNullOrEmpty(_lastCachedClipboardContent))
         {
             _convertImmediately = true;
-            InputTextBox.Text = clipboardText;
+            InputTextBox.Text = _lastCachedClipboardContent;
         }
     }
 
     private void ClipboardSuggestionCancelClick(object sender, RoutedEventArgs e)
     {
         ClipboardSuggestionButtonsGrid.Visibility = Visibility.Collapsed;
-        _clipboardSuggestionCancelled = true;
-        _cancelledClipboardSuggestionContent = Clipboard.GetText();
-        InputTextBox.Focus();
+        _cancelledClipboardSuggestionContent = _lastCachedClipboardContent;
     }
 
     private void DetectedCborDecodeSuggestionCancelButtonClick(object sender, RoutedEventArgs e)
     {
         DetectedCborDecodeSuggestionButtonsGrid.Visibility = Visibility.Collapsed;
+        _cancelledDetectedCborInClipboard = _detectedCborInClipboard;
     }
 
     private void DetectedCborDecodeSuggestionButtonClick(object sender, RoutedEventArgs e)
     {
-        InputTextBox.Text = _detectedCborInClipboard;
+        if (!string.IsNullOrEmpty(_detectedCborInClipboard))
+        {
+            _convertImmediately = true;
+            InputTextBox.Text = _detectedCborInClipboard;
+        }
+    }
+
+    private void AutoConvertInputTypeComboBoxSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        var inputType = GetAutoConvertingInputType();
+
+        if (inputType is null)
+        {
+            AutoConvertOutputElementsStack.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        AutoConvertOutputElementsStack.Visibility = Visibility.Visible;
+        var outputTypes = Utils.GetOutputConvertingTypes(null, inputType.Value);
+        AutoConvertOutputTypeComboBox.ItemsSource = outputTypes;
+        AutoConvertOutputTypeComboBox.SelectedIndex = 0;
+        SetupAutoConvertEncodingDecodingComboBoxVisibility(inputType.Value);
+    }
+
+    private void AutoConvertOutputTypeComboBoxSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        var inputType = GetAutoConvertingInputType();
+        if (inputType is null)
+        {
+            return;
+        }
+        SetupAutoConvertEncodingDecodingComboBoxVisibility(inputType.Value);
     }
     #endregion
 }
