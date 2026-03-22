@@ -52,7 +52,7 @@ public partial class MainWindow : Window
         _typingTimer.Interval = TimeSpan.FromMilliseconds(500);
         _convertingTimer = new();
         _convertingTimer.Tick += ConvertionTimerTimeout;
-        _convertingTimer.Interval = TimeSpan.FromMilliseconds(50);
+        _convertingTimer.Interval = TimeSpan.FromMilliseconds(10);
     }
 
     private void ConvertionTimerTimeout(object? sender, EventArgs e)
@@ -90,6 +90,9 @@ public partial class MainWindow : Window
         ClipboardSuggestionCancelButtonIcon.Source = CustomIcons.Close(Colors.White);
         DetectedCborDecodeSuggestionCancelButtonIcon.Source = CustomIcons.Close(Colors.White);
         DetectedCborDecodeSuggestionButton.Background = SystemColors.AccentColorBrush;
+        ClipboardSuggestionButton.Background = SystemColors.GrayTextBrush;
+        ClipboardSuggestionCancelButton.Background = SystemColors.GrayTextBrush;
+        DetectedCborDecodeSuggestionCancelButton.Background = SystemColors.AccentColorBrush;
         TextEncodingDecodingCombobox.ItemsSource = Utils.GetEncodingDecodingTypes();
         AutoConvertTextEncodingDecodingCombobox.ItemsSource = Utils.GetEncodingDecodingTypes();
         TextEncodingDecodingCombobox.SelectedIndex = 0;
@@ -283,12 +286,12 @@ public partial class MainWindow : Window
     {
         try
         {
-            if (!_autoConversionAllowed)
+            if (AutoConvertInputTypeComboBox.SelectedItem.ToString() == "None")
             {
                 return false;
             }
 
-            if (AutoConvertInputTypeComboBox.SelectedItem.ToString() == "None")
+            if (!_autoConversionAllowed)
             {
                 return false;
             }
@@ -384,6 +387,40 @@ public partial class MainWindow : Window
         });
     }
 
+    private void SetClipoboardSuggestionGridVisibility(Visibility visibility)
+    {
+        if (visibility == Visibility.Visible)
+        {
+            SuggestionButtonsGrid.Visibility = Visibility.Visible;
+            ClipboardSuggestionButtonsGrid.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            ClipboardSuggestionButtonsGrid.Visibility = Visibility.Collapsed;
+            if (DetectedCborDecodeSuggestionButtonsGrid.Visibility == Visibility.Collapsed)
+            {
+                SuggestionButtonsGrid.Visibility = Visibility.Collapsed;
+            }
+        }
+    }
+
+    private void SetDetectedCborDecodeSuggestionGridVisibility(Visibility visibility)
+    {
+        if (visibility == Visibility.Visible)
+        {
+            DetectedCborDecodeSuggestionButtonsGrid.Visibility = Visibility.Visible;
+            SuggestionButtonsGrid.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            DetectedCborDecodeSuggestionButtonsGrid.Visibility = Visibility.Collapsed;
+            if (ClipboardSuggestionButtonsGrid.Visibility == Visibility.Collapsed)
+            {
+                SuggestionButtonsGrid.Visibility = Visibility.Collapsed;
+            }
+        }
+    }
+
     #region Overrides
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
@@ -395,8 +432,10 @@ public partial class MainWindow : Window
     private void InputTextBoxTextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
     {
         InputHint.Visibility = string.IsNullOrEmpty(InputTextBox.Text) ? Visibility.Visible : Visibility.Collapsed;
-        DetectedCborDecodeSuggestionButtonsGrid.Visibility = Visibility.Collapsed;
-        ClipboardSuggestionButtonsGrid.Visibility = Visibility.Collapsed;
+
+        SetDetectedCborDecodeSuggestionGridVisibility(Visibility.Collapsed);
+        SetClipoboardSuggestionGridVisibility(Visibility.Collapsed);
+        
         _autoConversionAllowed = false;
 
         _typingTimer.Stop();
@@ -404,14 +443,13 @@ public partial class MainWindow : Window
 
         if (_convertImmediately || string.IsNullOrEmpty(InputTextBox.Text))
         {
+            _convertImmediately = false;
             _convertingTimer.Start();
         }
         else
         {
             _typingTimer.Start();
         }
-
-        _convertImmediately = false;
     }
 
     private void InputTextBoxGotFocus(object sender, RoutedEventArgs e)
@@ -452,13 +490,13 @@ public partial class MainWindow : Window
                                 if (InputTextBox.Text != _lastCachedClipboardContent &&
                                     _lastCachedClipboardContent != _cancelledClipboardSuggestionContent)
                                 {
-                                    ClipboardSuggestionButtonsGrid.Visibility = Visibility.Visible;
+                                    SetClipoboardSuggestionGridVisibility(Visibility.Visible);
                                 }
 
                                 if (InputTextBox.Text != _detectedCborInClipboard && 
                                     _detectedCborInClipboard != _cancelledDetectedCborInClipboard)
                                 {
-                                    DetectedCborDecodeSuggestionButtonsGrid.Visibility = Visibility.Visible;
+                                    SetDetectedCborDecodeSuggestionGridVisibility(Visibility.Visible);
                                 }
                             }
                         });
@@ -520,7 +558,7 @@ public partial class MainWindow : Window
 
     private void ClipboardSuggestionCancelClick(object sender, RoutedEventArgs e)
     {
-        ClipboardSuggestionButtonsGrid.Visibility = Visibility.Collapsed;
+        SetClipoboardSuggestionGridVisibility(Visibility.Collapsed);
         _cancelledClipboardSuggestionContent = _lastCachedClipboardContent;
         InputTextBox.Focus();
     }
@@ -536,7 +574,7 @@ public partial class MainWindow : Window
 
     private void DetectedCborDecodeSuggestionCancelButtonClick(object sender, RoutedEventArgs e)
     {
-        DetectedCborDecodeSuggestionButtonsGrid.Visibility = Visibility.Collapsed;
+        SetDetectedCborDecodeSuggestionGridVisibility(Visibility.Collapsed);
         _cancelledDetectedCborInClipboard = _detectedCborInClipboard;
         InputTextBox.Focus();
     }
@@ -548,8 +586,11 @@ public partial class MainWindow : Window
         if (inputType is null)
         {
             AutoConvertOutputElementsStack.Visibility = Visibility.Collapsed;
+            AutoConvertInputComboboxTitle.Visibility = Visibility.Collapsed;
             return;
         }
+
+        AutoConvertInputComboboxTitle.Visibility = Visibility.Visible;
 
         AutoConvertOutputElementsStack.Visibility = Visibility.Visible;
         var outputTypes = Utils.GetOutputConvertingTypes(null, inputType.Value);

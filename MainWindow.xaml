@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:Convertie"
         WindowStyle="ThreeDBorderWindow"
         ShowInTaskbar="True"
+        Topmost="True"
         ResizeMode="CanResize"
         MaxWidth="{x:Static SystemParameters.PrimaryScreenWidth}"
         MaxHeight="{x:Static SystemParameters.PrimaryScreenHeight}"
@@ -40,41 +41,50 @@
                          HorizontalAlignment="Stretch" VerticalAlignment="Stretch" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True"
                          TextChanged="InputTextBoxTextChanged" GotFocus="InputTextBoxGotFocus"/>
 
-                <StackPanel Grid.Row="2" Orientation="Vertical" Margin="10" VerticalAlignment="Bottom">
-                    <Grid x:Name="ClipboardSuggestionButtonsGrid" Height="33" VerticalAlignment="Bottom" Visibility="Collapsed">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+                <Grid x:Name="SuggestionButtonsGrid" Grid.Row="2" Margin="5" VerticalAlignment="Bottom" Visibility="Collapsed">
+                    <Border Grid.Row="2" Background="Gray" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+                        <Border.Effect>
+                            <BlurEffect Radius="25"/>
+                        </Border.Effect>
+                    </Border>
+                    
+                    <StackPanel Orientation="Vertical" Margin="5" >
+                        <Grid x:Name="ClipboardSuggestionButtonsGrid" Height="33" VerticalAlignment="Bottom" Visibility="Collapsed">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
 
-                        <Button Grid.Column="0" x:Name="ClipboardSuggestionButton" Content="Convert from clipboard" FontWeight="SemiBold"
-                            VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="0,0,2.5,0" Padding="5" Height="30"
-                            Click="ClipboardSuggestionButtonClick"/>
+                            <Button Grid.Column="0" x:Name="ClipboardSuggestionButton" Content="Convert from clipboard" FontWeight="SemiBold"
+                                    VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="0,0,2.5,0" Padding="5" Height="30"
+                                    Click="ClipboardSuggestionButtonClick"/>
 
-                        <Button Grid.Column="1" x:Name="ClipboardSuggestionCancelButton" FontWeight="SemiBold"
-                            VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="2.5,1.5,0,1.5" Padding="8" 
-                            Click="ClipboardSuggestionCancelClick">
-                            <Image x:Name="ClipboardSuggestionCancelButtonIcon"/>
-                        </Button>
-                    </Grid>
+                            <Button Grid.Column="1" x:Name="ClipboardSuggestionCancelButton" FontWeight="SemiBold"
+                                    VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="2.5,1.5,0,1.5" Padding="8" 
+                                    Click="ClipboardSuggestionCancelClick">
+                                <Image x:Name="ClipboardSuggestionCancelButtonIcon"/>
+                            </Button>
+                        </Grid>
 
-                    <Grid x:Name="DetectedCborDecodeSuggestionButtonsGrid" Height="33" Margin="0,10,0,0" VerticalAlignment="Bottom" Visibility="Collapsed">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+                        <Grid x:Name="DetectedCborDecodeSuggestionButtonsGrid" Height="33" Margin="0,10,0,0" VerticalAlignment="Bottom" 
+                              Visibility="Collapsed">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
 
-                        <Button Grid.Column="0" x:Name="DetectedCborDecodeSuggestionButton" Content="A CBOR detected in clipboard. Click to decode it." FontWeight="SemiBold"
-                                VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="0,0,2.5,0" Padding="5" Height="30"
-                                Click="DetectedCborDecodeSuggestionButtonClick"/>
+                            <Button Grid.Column="0" x:Name="DetectedCborDecodeSuggestionButton" Content="A CBOR detected in clipboard. Click to decode it." FontWeight="SemiBold"
+                                    VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="0,0,2.5,0" Padding="5" Height="30"
+                                    Click="DetectedCborDecodeSuggestionButtonClick"/>
 
-                        <Button Grid.Column="1" x:Name="DetectedCborDecodeSuggestionCancelButton" FontWeight="SemiBold"
-                                VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="2.5,1.5,0,1.5" Padding="8" 
-                                Click="DetectedCborDecodeSuggestionCancelButtonClick">
-                            <Image x:Name="DetectedCborDecodeSuggestionCancelButtonIcon"/>
-                        </Button>
-                    </Grid>
-                </StackPanel>
+                            <Button Grid.Column="1" x:Name="DetectedCborDecodeSuggestionCancelButton" FontWeight="SemiBold"
+                                    VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="2.5,1.5,0,1.5" Padding="8"
+                                    Click="DetectedCborDecodeSuggestionCancelButtonClick">
+                                <Image x:Name="DetectedCborDecodeSuggestionCancelButtonIcon"/>
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+                </Grid>
             </Grid>
 
             <Grid x:Name="OutputElementsGrid" Grid.Row="1" Margin="0,10,0,0" Visibility="Collapsed">
@@ -116,9 +126,9 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="10">
-                    <TextBlock Text="From" FontWeight="SemiBold" VerticalAlignment="Center" />
-                    <ComboBox Name="AutoConvertInputTypeComboBox" FontWeight="SemiBold" Margin="5,0,0,0" VerticalAlignment="Center" SelectionChanged="AutoConvertInputTypeComboBoxSelectionChanged"/>
-                    <StackPanel x:Name="AutoConvertOutputElementsStack" Orientation="Horizontal" Visibility="Visible">
+                    <TextBlock x:Name="AutoConvertInputComboboxTitle" Text="From" Margin="0,0,5,0" FontWeight="SemiBold" VerticalAlignment="Center" Visibility="Collapsed"/>
+                    <ComboBox Name="AutoConvertInputTypeComboBox" FontWeight="SemiBold" VerticalAlignment="Center" SelectionChanged="AutoConvertInputTypeComboBoxSelectionChanged"/>
+                    <StackPanel x:Name="AutoConvertOutputElementsStack" Orientation="Horizontal" Visibility="Collapsed">
                         <TextBlock Text="to" FontWeight="SemiBold" Margin="5,0,0,0" VerticalAlignment="Center" />
                         <ComboBox Name="AutoConvertOutputTypeComboBox" FontWeight="SemiBold" Margin="5,0,0,0" VerticalAlignment="Center" SelectionChanged="AutoConvertOutputTypeComboBoxSelectionChanged"/>
 
