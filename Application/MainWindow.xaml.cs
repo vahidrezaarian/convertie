@@ -115,6 +115,11 @@ public partial class MainWindow : Window
         TextEncodingDecodingCombobox.SelectedIndex = 0;
         AutoConvertTextEncodingDecodingCombobox.SelectedIndex = 0;
 
+        if (Properties.Settings.Default.PanelOrientation == 1)
+        {
+            SetupContentGrid(true);
+        }
+
         Loaded += (s, e) =>
         {
             Task.Run(() =>
@@ -216,6 +221,8 @@ public partial class MainWindow : Window
             {
                 _isHorizontal = false;
                 CreateVerticalPanel();
+                Properties.Settings.Default.PanelOrientation = 1;
+                Properties.Settings.Default.Save();
             }
             else
             {
@@ -228,6 +235,8 @@ public partial class MainWindow : Window
             {
                 _isHorizontal = true;
                 CreateHorizontalPanel();
+                Properties.Settings.Default.PanelOrientation = 0;
+                Properties.Settings.Default.Save();
             }
             else
             {
