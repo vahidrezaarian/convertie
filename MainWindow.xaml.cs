@@ -13,7 +13,6 @@ public enum ConvertingTypes
     Text,
     Hex,
     Binary,
-    //Octal,
     Decimal,
     Base64,
     Base64URL,
