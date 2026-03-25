@@ -14,7 +14,7 @@ public enum ConvertingTypes
     Hex,
     Binary,
     //Octal,
-    //Decimal,
+    Decimal,
     Base64,
     Base64URL,
     CBOR
@@ -80,6 +80,8 @@ public partial class MainWindow : Window
             ConvertingTypes.Hex.ToString(),
             ConvertingTypes.Base64.ToString(),
             ConvertingTypes.Base64URL.ToString(),
+            ConvertingTypes.Binary.ToString(),
+            ConvertingTypes.Decimal.ToString(),
             "CBOR (Exact)",
             "CBOR (In content)",
         };
