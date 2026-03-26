@@ -41,7 +41,7 @@ public partial class MainWindow : Window
     private string _cancelledClipboardSuggestionContent = string.Empty;
     private string _lastCachedClipboardContent = string.Empty;
     private string _detectedCborInClipboard = string.Empty;
-    private string _cancelledDetectedCborInClipboard = string.Empty;
+    private string _cancelledClipboardSuggestionContentWithCborIn = string.Empty;
     private string _lastAutoConvertedInput = string.Empty;
     private readonly DispatcherTimer _typingTimer;
     private readonly DispatcherTimer _convertingTimer;
@@ -481,11 +481,6 @@ public partial class MainWindow : Window
                 return false;
             }
 
-            if (!string.IsNullOrEmpty(_lastAutoConvertedInput) && (_lastAutoConvertedInput == _lastCachedClipboardContent || _lastAutoConvertedInput == InputTextBox.Text))
-            {
-                return false;
-            }
-
             ConvertingTypes autoConvertInputType;
             bool cborInContent = false;
             if (AutoConvertInputTypeComboBox.SelectedItem.ToString()?.Contains("CBOR") == true)
@@ -509,6 +504,11 @@ public partial class MainWindow : Window
                     return false;
                 }
                 input = _detectedCborInClipboard;
+            }
+
+            if (input == _lastAutoConvertedInput)
+            {
+                return false;
             }
 
             var inputTypes = Utils.GetInputConvertingTypes(input);
@@ -603,12 +603,17 @@ public partial class MainWindow : Window
         }
     }
 
+    private void InputTextBoxGotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        InputTextBoxGotFocus(sender, new RoutedEventArgs());
+    }
+
     private void InputTextBoxGotFocus(object sender, RoutedEventArgs e)
     {
         _lastCachedClipboardContent = Clipboard.GetText();
         Task.Run(() =>
         {
-            if (_lastCachedClipboardContent.ContainsCbor(out string detectedCborHex) && detectedCborHex != _cancelledDetectedCborInClipboard)
+            if (_lastCachedClipboardContent.ContainsCbor(out string detectedCborHex))
             {
                 _detectedCborInClipboard = detectedCborHex;
             }
@@ -628,9 +633,9 @@ public partial class MainWindow : Window
                             _cancelledClipboardSuggestionContent = string.Empty;
                         }
 
-                        if (_detectedCborInClipboard != _cancelledDetectedCborInClipboard)
+                        if (_lastCachedClipboardContent != _cancelledClipboardSuggestionContentWithCborIn)
                         {
-                            _cancelledDetectedCborInClipboard = string.Empty;
+                            _cancelledClipboardSuggestionContentWithCborIn = string.Empty;
                         }
 
                         if (InputTextBox.Text != _lastCachedClipboardContent &&
@@ -639,7 +644,8 @@ public partial class MainWindow : Window
                             SetClipoboardSuggestionGridVisibility(Visibility.Visible);
                         }
 
-                        if (!string.IsNullOrEmpty(_detectedCborInClipboard) && InputTextBox.Text != _detectedCborInClipboard)
+                        if (_lastCachedClipboardContent != _cancelledClipboardSuggestionContentWithCborIn &&
+                            !string.IsNullOrEmpty(_detectedCborInClipboard) && InputTextBox.Text != _detectedCborInClipboard)
                         {
                             SetDetectedCborDecodeSuggestionGridVisibility(Visibility.Visible);
                         }
@@ -761,7 +767,7 @@ public partial class MainWindow : Window
     private void DetectedCborDecodeSuggestionCancelButtonClick(object sender, RoutedEventArgs e)
     {
         SetDetectedCborDecodeSuggestionGridVisibility(Visibility.Collapsed);
-        _cancelledDetectedCborInClipboard = _detectedCborInClipboard;
+        _cancelledClipboardSuggestionContentWithCborIn = _lastCachedClipboardContent;
         InputTextBox.Focus();
     }
 

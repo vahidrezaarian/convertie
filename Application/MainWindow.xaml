@@ -42,7 +42,7 @@
                 <TextBlock Grid.Row="2" x:Name="InputHint" Text="Type or paste to convert" Foreground="Gray" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                 <TextBox Grid.Row="2" x:Name="InputTextBox" Background="Transparent" BorderThickness="1" Padding="10" FontSize="14" Margin="0,5,0,0"
                          HorizontalAlignment="Stretch" VerticalAlignment="Stretch" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True"
-                         TextChanged="InputTextBoxTextChanged" GotFocus="InputTextBoxGotFocus"/>
+                         TextChanged="InputTextBoxTextChanged" GotFocus="InputTextBoxGotFocus" GotKeyboardFocus="InputTextBoxGotKeyboardFocus"/>
 
                 <Grid x:Name="SuggestionButtonsGrid" Grid.Row="2" Margin="10" VerticalAlignment="Bottom" Visibility="Collapsed">
                     <Border x:Name="SuggestionGridBackground" Grid.Row="2" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
