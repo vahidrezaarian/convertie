@@ -283,7 +283,7 @@ public static class Extensions
     {
         try
         {
-            long.Parse(value);
+            BigInteger.Parse(value.Trim());
             return true;
         }
         catch
@@ -353,8 +353,8 @@ public static class Extensions
                 return false;
             }
 
-            CBORObject.DecodeFromBytes(bytes);
-            return true;
+            var cbor = CBORObject.DecodeFromBytes(bytes);
+            return cbor.Count > 1;
         }
         catch
         {

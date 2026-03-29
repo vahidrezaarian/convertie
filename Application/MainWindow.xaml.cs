@@ -360,20 +360,11 @@ public partial class MainWindow : Window
 
         if (string.IsNullOrEmpty(InputTextBox.Text))
         {
+            InputLength.Visibility = Visibility.Collapsed;
             return;
         }
 
-        var inputType = (ConvertingTypes)InputComboBox.SelectedItem;
-        var input = InputTextBox.Text;
-
-        InputLength.Text = inputType switch
-        {
-            ConvertingTypes.Hex or ConvertingTypes.CBOR => $"({input.ToByteArrayFromHexString().Length} bytes)  ({input.Length} characters)",
-            ConvertingTypes.Binary or ConvertingTypes.CBOR => $"({input.ToByteArrayFromBinaryString().Length} bytes) ({input.Length} bits)",
-            ConvertingTypes.Base64 => $"({input.ToByteArrayFromBase64String().Length} bytes)  ({input.Length} characters)",
-            ConvertingTypes.Base64URL => $"({input.ToByteArrayFromBase64UrlString().Length} bytes)  ({input.Length} characters)",
-            _ => $"({input.Length} characters)",
-        };
+        InputLength.Text = GetLengthString(InputTextBox.Text, (ConvertingTypes)InputComboBox.SelectedItem);
         InputLength.Visibility = Visibility.Visible;
     }
 
@@ -387,20 +378,11 @@ public partial class MainWindow : Window
 
         if (string.IsNullOrEmpty(InputTextBox.Text))
         {
+            OutputLength.Visibility = Visibility.Collapsed;
             return;
         }
 
-        var inputType = (ConvertingTypes)OutputComboBox.SelectedItem;
-        var input = OutputTextBox.Text;
-
-        OutputLength.Text = inputType switch
-        {
-            ConvertingTypes.Hex or ConvertingTypes.CBOR => $"({input.ToByteArrayFromHexString().Length} bytes)  ({input.Length} characters)",
-            ConvertingTypes.Binary or ConvertingTypes.CBOR => $"({input.ToByteArrayFromBinaryString().Length} bytes) ({input.Length} bits)",
-            ConvertingTypes.Base64 => $"({input.ToByteArrayFromBase64String().Length} bytes)  ({input.Length} characters)",
-            ConvertingTypes.Base64URL => $"({input.ToByteArrayFromBase64UrlString().Length} bytes)  ({input.Length} characters)",
-            _ => $"({input.Length} characters)",
-        };
+        OutputLength.Text = GetLengthString(OutputTextBox.Text, (ConvertingTypes)OutputComboBox.SelectedItem);
         OutputLength.Visibility = Visibility.Visible;
     }
 
@@ -834,6 +816,36 @@ public partial class MainWindow : Window
         Properties.Settings.Default.TopMosetStatus = !Properties.Settings.Default.TopMosetStatus;
         Properties.Settings.Default.Save();
         SetupTopMostButtonAndValue();
+    }
+    #endregion
+
+    #region StaticHelpers
+    private static string GetBytesLengthString(byte[] data)
+    {
+        return data.Length.ToString() + " " + (data.Length > 1 ? "bytes" : "byte");
+    }
+
+    private static string GetStringCharactersCountString(string data)
+    {
+        return data.Length + " " + (data.Length > 1 ? "characters" : "character");
+    }
+
+    private static string GetBinaryStringBitsCountString(string data)
+    {
+        return data.Length + " " + (data.Length > 1 ? "bits" : "bit");
+    }
+
+    private static string GetLengthString(string data, ConvertingTypes type)
+    {
+        return type switch
+        {
+            ConvertingTypes.Hex or ConvertingTypes.CBOR => $"({GetBytesLengthString(data.ToByteArrayFromHexString())})  ",
+            ConvertingTypes.Binary => $"({GetBytesLengthString(data.ToByteArrayFromBinaryString())})  ",
+            ConvertingTypes.Base64 => $"({GetBytesLengthString(data.ToByteArrayFromBase64String())})  ",
+            ConvertingTypes.Decimal => $"({GetBytesLengthString(data.ToByteArrayFromDecimalString())})  ",
+            ConvertingTypes.Base64URL => $"({GetBytesLengthString(data.ToByteArrayFromBase64UrlString())})  ",
+            _ => "",
+        } + $"({GetStringCharactersCountString(data)})";
     }
     #endregion
 }
