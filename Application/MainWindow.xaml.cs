@@ -38,6 +38,7 @@ public partial class MainWindow : Window
     private ConvertingTypes? _manuallySelectedInputType = null;
     private ConvertingTypes? _manuallySelectedOutputType = null;
     private bool _initialAutoConvertingSelection = true;
+    private bool _clipboardSuggestionEnabled = true;
     private string _cancelledClipboardSuggestionContent = string.Empty;
     private string _lastCachedClipboardContent = string.Empty;
     private string _detectedCborInClipboard = string.Empty;
@@ -98,6 +99,7 @@ public partial class MainWindow : Window
     {
         InitialzeAutoConvertInputTypeComboBox();
         SetupTopMostButtonAndValue();
+        SetupClipboardSuggestionButtonAndValue();
         PanelChangeIcon.Source = CustomIcons.ScreenVertical(SystemColors.AccentColor);
         CopyButtonIcon.Source = CustomIcons.Copy(SystemColors.AccentColor);
         ReverseButtonIcon.Source = CustomIcons.ArrowUp(SystemColors.AccentColor);
@@ -544,6 +546,22 @@ public partial class MainWindow : Window
         }
     }
 
+    private void SetupClipboardSuggestionButtonAndValue()
+    {
+        _clipboardSuggestionEnabled = Properties.Settings.Default.ClipboardSuggestionStatus;
+
+        if (_clipboardSuggestionEnabled)
+        {
+            ClipBoardSuggestionToggleButtonIcon.Source = CustomIcons.ClipboardFilled(SystemColors.AccentColor);
+            ClipBoardSuggestionToggleButton.ToolTip = "Disable the clipboard suggestion.";
+        }
+        else
+        {
+            ClipBoardSuggestionToggleButtonIcon.Source = CustomIcons.ClipboardOutlined(SystemColors.AccentColor);
+            ClipBoardSuggestionToggleButton.ToolTip = "Enable the clipboard suggestion.";
+        }
+    }
+
     #region Overrides
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
@@ -608,7 +626,7 @@ public partial class MainWindow : Window
             {
                 Dispatcher.Invoke(() =>
                 {
-                    if (!TryAutoConversion(_lastCachedClipboardContent))
+                    if (!TryAutoConversion(_lastCachedClipboardContent) && _clipboardSuggestionEnabled)
                     {
                         if (_lastCachedClipboardContent != _cancelledClipboardSuggestionContent)
                         {
@@ -816,6 +834,13 @@ public partial class MainWindow : Window
         Properties.Settings.Default.TopMosetStatus = !Properties.Settings.Default.TopMosetStatus;
         Properties.Settings.Default.Save();
         SetupTopMostButtonAndValue();
+    }
+
+    private void ClipBoardSuggestionToggleButtonClick(object sender, RoutedEventArgs e)
+    {
+        Properties.Settings.Default.ClipboardSuggestionStatus = !Properties.Settings.Default.ClipboardSuggestionStatus;
+        Properties.Settings.Default.Save();
+        SetupClipboardSuggestionButtonAndValue();
     }
     #endregion
 

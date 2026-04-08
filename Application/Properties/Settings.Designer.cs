@@ -82,5 +82,17 @@ namespace Convertie.Properties {
                 this["PanelOrientation"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool ClipboardSuggestionStatus {
+            get {
+                return ((bool)(this["ClipboardSuggestionStatus"]));
+            }
+            set {
+                this["ClipboardSuggestionStatus"] = value;
+            }
+        }
     }
 }
